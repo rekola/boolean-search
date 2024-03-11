@@ -531,7 +531,8 @@ namespace boolean_matcher {
     // creates a binary expression tree from a expression string
     static std::unique_ptr<Node> parse(std::string_view expression) {
       std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-      
+
+      // add spaces before and after brackets to ease tokenization
       std::string e;
       for (size_t i = 0; i < expression.size(); i++) {
 	auto c = expression[i];
@@ -582,12 +583,6 @@ namespace boolean_matcher {
       while (!stack.empty()) {
 	rpn.push_back(stack.back());
 	stack.pop_back();
-      }
-    
-      std::string r;
-      for (auto & t : rpn) {
-	if (!r.empty()) r += " ";
-	r += t;
       }
   
       std::vector<std::unique_ptr<Node> > node_stack;
