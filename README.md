@@ -8,8 +8,10 @@ A single-header C++ Boolean search library for streaming applications.
 
 ## Features
 
-- UTF8
+- UTF-8
 - AND, OR, NOT, NEAR, ONEAR operators
+- Wildcards
+- Unicode normalization
 
 ## Example
 
@@ -25,6 +27,7 @@ if (m.match("I've got an apple and an orange")) {
 - Add maximum distance to NEAR and ONEAR (e.g. `NEAR/1`)
 - Add template for input type
 - Add interface for metadata queries (e.g. `.timestamp > "2024-10-01"`)
+- Allow wildcards inside terms (e.g. `w*d``)
 
 ## Dependencies
 
