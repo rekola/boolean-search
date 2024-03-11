@@ -9,6 +9,8 @@ TEST_CASE( "expression with term only", "[term]" ) {
 
   REQUIRE(m.match("Hello world!") == true);
   REQUIRE(m.match("Goodbye world!") == false);
+  REQUIRE(m.match("Hello!") == true);
+  REQUIRE(m.match("Helloo!") == false);
 }
 
 TEST_CASE( "AND operation", "[and]" ) {
@@ -66,4 +68,12 @@ TEST_CASE( "search", "[search]" ) {
 
   auto r = m.search(s);
   REQUIRE(r.has_match());
+}
+
+TEST_CASE( "wildcards", "[wildcards]" ) {
+  boolean_matcher::matcher m("hello*");
+  REQUIRE(m.match("Hell") == false);
+  REQUIRE(m.match("Hello!") == true);
+  REQUIRE(m.match("Helloo!") == true);
+  REQUIRE(m.match("Hellooou!") == true);
 }
