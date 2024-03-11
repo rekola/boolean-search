@@ -76,4 +76,40 @@ TEST_CASE( "wildcards", "[wildcards]" ) {
   REQUIRE(m.match("Hello!") == true);
   REQUIRE(m.match("Helloo!") == true);
   REQUIRE(m.match("Hellooou!") == true);
+
+  boolean_matcher::matcher m2("*ello");
+  REQUIRE(m2.match("ello") == true);
+  REQUIRE(m2.match("hello") == true);
+  REQUIRE(m2.match("cello") == true);
+  REQUIRE(m2.match("llo") == false);
+
+  boolean_matcher::matcher m3("*ello*");
+  REQUIRE(m3.match("ello") == true);
+  REQUIRE(m3.match("yellow") == true);
+  REQUIRE(m3.match("helo") == false);
+
+  boolean_matcher::matcher m4("*");
+  REQUIRE(m4.match("hello world!") == true);
+
+  boolean_matcher::matcher m5("* AND world");
+  REQUIRE(m5.match("hello world!") == true);
+}
+
+TEST_CASE( "n-grams", "[n-grams]" ) {
+  boolean_matcher::matcher m("\"hello world\"");
+  REQUIRE(m.match("Let me start by saying: Hello world!") == true);
+  REQUIRE(m.match("World hello") == false);
+  REQUIRE(m.match("hello worldddd") == false);
+  REQUIRE(m.match("Hello beautiful world") == false);
+
+  boolean_matcher::matcher m2("\"one two three\" AND four");
+  REQUIRE(m2.match("one two three four") == true);
+  REQUIRE(m2.match("four one two three") == true);
+  REQUIRE(m2.match("one two three") == false);
+  REQUIRE(m2.match("four one") == false);
+
+  boolean_matcher::matcher m3("\"hello world*\"");
+  REQUIRE(m3.match("hello world") == true);
+  REQUIRE(m3.match("hello worlddddd") == true);
+  REQUIRE(m3.match("hello beautiful world") == false);
 }
