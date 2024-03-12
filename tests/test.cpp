@@ -113,3 +113,11 @@ TEST_CASE( "n-grams", "[n-grams]" ) {
   REQUIRE(m3.match("hello worlddddd") == true);
   REQUIRE(m3.match("hello beautiful world") == false);
 }
+
+TEST_CASE( "implicit ORs", "[implicit_or]" ) {
+  boolean_matcher::matcher m("hello world");
+  REQUIRE(m.match("hello") == true);
+  REQUIRE(m.match("world") == true);
+  REQUIRE(m.match("world hello") == true);
+  REQUIRE(m.match("orange") == false);
+}

@@ -529,9 +529,7 @@ namespace boolean_matcher {
     }
 
     // creates a binary expression tree from a expression string
-    static std::unique_ptr<Node> parse(std::string_view expression) {
-      std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-
+    std::unique_ptr<Node> parse(std::string_view expression) {
       // add spaces before and after brackets to ease tokenization
       std::string e;
       for (size_t i = 0; i < expression.size(); i++) {
@@ -549,24 +547,23 @@ namespace boolean_matcher {
 
       auto tokens = tokenize(e);
 
-      for (size_t i = 0; i + 1 < tokens.size(); i++) {
-	auto & t = tokens[i], t2 = tokens[i + 1];
-	bool op1 = t == "AND" || t == "OR" || t == "NEAR" || t == "ONEAR" || t == "NOT";
-	bool op2 = t2 == "AND" || t2 == "OR" || t2 == "NEAR" || t2 == "ONEAR" || t2 == "NOT";
-	bool term1 = !op1 && t != "(" && t != ")";
-	bool term2 = !op2 && t2 != "(" && t2 != ")";
-	if (op1 && op2) throw std::runtime_error("missing term");
-	if (term1 && term2) {
-	  throw std::runtime_error("missing operator (t1 = " + t + ", t2 = " + t2 + ")");
-	}
-      }
-
       std::vector<std::string> stack, rpn;
       while (!tokens.empty()) {
-	auto t = tokens.front();
+	auto t = std::move(tokens.front());
 	tokens.pop_front();
-    
-	if (t == "AND" || t == "OR" || t == "NOT" || t == "NEAR" || t == "ONEAR" || t == "(") {
+
+	bool op1 = t == "AND" || t == "OR" || t == "NEAR" || t == "ONEAR" || t == "NOT";
+	
+	if (!tokens.empty()) {
+	  auto & t2 = tokens.front();
+	  bool op2 = t2 == "AND" || t2 == "OR" || t2 == "NEAR" || t2 == "ONEAR" || t2 == "NOT";
+	  if (op1 && op2) throw std::runtime_error("missing term");
+	  if (!op1 && t != "(" && !op2 && t2 != ")") {
+	    tokens.push_front("OR");
+	  }
+	}
+	
+	if (op1 || t == "(") {
 	  stack.push_back(t);
 	} else if (t == ")") {
 	  while (!stack.empty() && stack.back() != "(") {
@@ -635,7 +632,7 @@ namespace boolean_matcher {
 	  node_stack.push_back(std::make_unique<AndNot>(std::move(left), std::move(right)));
 	} else {
 	  auto t2 = normalize(t);
-	  auto t3 = converter.from_bytes(t2.data(), t2.data() + t2.size());
+	  auto t3 = converter_.from_bytes(t2.data(), t2.data() + t2.size());
 	  node_stack.push_back(std::make_unique<Term>(t2, t3));
 	}
       }
