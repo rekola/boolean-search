@@ -25,9 +25,14 @@ if (m.match("I've got an apple and an orange")) {
 ## Future Plans
 
 - Add maximum distance to NEAR and ONEAR (e.g. `NEAR/1`)
-- Add template for input type
+- Add support for wstrings
+- Add support for pairs and tuples
 - Add interface for metadata queries (e.g. `.timestamp > "2024-10-01"`)
-- Allow wildcards inside terms (e.g. `w*d``)
+- Allow wildcards inside terms (e.g. `w*d`)
+- Add comparison operators and arithmetics
+- Add filtering
+- Add better lexer and parser
+- Embeddings / Document vectors
 
 ## Dependencies
 
