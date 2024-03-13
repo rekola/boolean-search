@@ -104,8 +104,14 @@ namespace boolean_matcher {
     class Node {
     public:
       Node() { }
-      Node(std::unique_ptr<Node> left, std::unique_ptr<Node> right)
-	: left_(std::move(left)), right_(std::move(right)) { }
+      Node(std::vector<std::unique_ptr<Node> > & node_stack) {
+	if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
+
+	right_ = std::move(node_stack.back());
+	node_stack.pop_back();
+	left_ = std::move(node_stack.back());
+	node_stack.pop_back();
+      }
       
       virtual ~Node() { }
 
@@ -181,9 +187,8 @@ namespace boolean_matcher {
 
     class And : public Node {
     public:
-      And(std::unique_ptr<Node> left, std::unique_ptr<Node> right)
-	: Node(std::move(left), std::move(right)) { }
-    
+      And(std::vector<std::unique_ptr<Node> > & node_stack) : Node(node_stack) { }
+          
       bool eval() const override {
 	return left_->eval() && right_->eval();
       }
@@ -212,8 +217,7 @@ namespace boolean_matcher {
 
     class Or : public Node {
     public:
-      Or(std::unique_ptr<Node> left, std::unique_ptr<Node> right)
-	: Node(std::move(left), std::move(right)) { }
+      Or(std::vector<std::unique_ptr<Node> > & node_stack) : Node(node_stack) { }
       
       bool eval() const override {
 	return left_->eval() || right_->eval();
@@ -240,9 +244,8 @@ namespace boolean_matcher {
 
     class AndNot : public Node {
     public:
-      AndNot( std::unique_ptr<Node> left, std::unique_ptr<Node> right )
-	: Node(std::move(left), std::move(right)) { }
-    
+      AndNot(std::vector<std::unique_ptr<Node> > & node_stack) : Node(node_stack) { }
+      
       bool eval() const override {
 	if (right_->eval()) return false;
 	return left_->eval();
@@ -268,8 +271,10 @@ namespace boolean_matcher {
 
     class Near : public Node {
     public:
-      Near(std::unique_ptr<Node> left, std::unique_ptr<Node> right, int left_distance, int right_distance)
-	: Node(std::move(left), std::move(right)), left_distance_(left_distance), right_distance_(right_distance) { }
+      Near(std::vector<std::unique_ptr<Node> > & node_stack, int left_distance = 4, int right_distance = 4)
+	: Node(node_stack),
+	  left_distance_(left_distance),
+	  right_distance_(right_distance) { }
 
       bool eval() const override {
 	auto matches = getMatches();
@@ -528,6 +533,17 @@ namespace boolean_matcher {
       return r;
     }
 
+    std::unique_ptr<Node> createNode(const std::string & t, std::vector<std::unique_ptr<Node>> & node_stack) {
+      if (t == "AND") return std::make_unique<And>(node_stack);
+      if (t == "OR") return std::make_unique<Or>(node_stack);
+      if (t == "NEAR") return std::make_unique<Near>(node_stack);
+      if (t == "ONEAR") return std::make_unique<Near>(node_stack, 0);
+      if (t == "NOT") return std::make_unique<AndNot>(node_stack);
+      auto t2 = normalize(t);
+      auto t3 = converter_.from_bytes(t2.data(), t2.data() + t2.size());
+      return std::make_unique<Term>(t2, t3);
+    }
+
     // creates a binary expression tree from a expression string
     std::unique_ptr<Node> parse(std::string_view expression) {
       // add spaces before and after brackets to ease tokenization
@@ -585,58 +601,9 @@ namespace boolean_matcher {
       std::vector<std::unique_ptr<Node> > node_stack;
       
       for (auto & t : rpn) {
-	if (t == "AND") {
-	  if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
-	  
-	  auto right = std::move(node_stack.back());
-	  node_stack.pop_back();
-	  auto left = std::move(node_stack.back());
-	  node_stack.pop_back();
-      
-	  node_stack.push_back(std::make_unique<And>(std::move(left), std::move(right)));
-	} else if (t == "OR") {
-	  if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
-
-	  auto right = std::move(node_stack.back());
-	  node_stack.pop_back();
-	  auto left = std::move(node_stack.back());
-	  node_stack.pop_back();
-      
-	  node_stack.push_back(std::make_unique<Or>(std::move(left), std::move(right)));
-	} else if (t == "NEAR") {
-	  if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
-      
-	  auto right = std::move(node_stack.back());
-	  node_stack.pop_back();
-	  auto left = std::move(node_stack.back());
-	  node_stack.pop_back();
-      
-	  node_stack.push_back(std::make_unique<Near>(std::move(left), std::move(right), 4, 4));
-	} else if (t == "ONEAR") {
-	  if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
-      
-	  auto right = std::move(node_stack.back());
-	  node_stack.pop_back();
-	  auto left = std::move(node_stack.back());
-	  node_stack.pop_back();
-      
-	  node_stack.push_back(std::make_unique<Near>(std::move(left), std::move(right), 0, 4));
-	} else if (t == "NOT") {
-	  if (node_stack.size() < 2) throw std::runtime_error("stack underflow");
-
-	  auto right = std::move(node_stack.back());
-	  node_stack.pop_back();
-	  auto left = std::move(node_stack.back());
-	  node_stack.pop_back();
-      
-	  node_stack.push_back(std::make_unique<AndNot>(std::move(left), std::move(right)));
-	} else {
-	  auto t2 = normalize(t);
-	  auto t3 = converter_.from_bytes(t2.data(), t2.data() + t2.size());
-	  node_stack.push_back(std::make_unique<Term>(t2, t3));
-	}
+	node_stack.push_back(createNode(t, node_stack));
       }
-
+      
       if (node_stack.empty()) {
 	throw std::runtime_error("no tokens");
       } else if (node_stack.size() > 1) {
